@@ -107,11 +107,10 @@ s_box :: [[Word8]] -> Bits6 -> Bits4
 s_box s (a:b:c:d:e:f:_) = bits4 $ (s `unsafeIndex` row) `unsafeIndex` col
  where row = num1 a + num0 f
        col = num3 b + num2 c  + num1 d + num0 e
-       num0 = numericise 0
-       num1 = numericise 1
-       num2 = numericise 2
-       num3 = numericise 3       
-       numericise = (\y x -> if x then shl 1 y else 0)
+       num0 x = if x then 1 else 0 
+       num1 x = if x then 2 else 0
+       num2 x = if x then 4 else 0
+       num3 x = if x then 8 else 0
        bits4 i = [ ((i .&. 8) == 8)
                  , ((i .&. 4) == 4)
                  , ((i .&. 2) == 2)
@@ -187,12 +186,7 @@ final_perm kb = map (unsafeIndex kb) i
             33, 1, 41,  9, 49, 17, 57, 25, 32, 0, 40 , 8, 48, 16, 56, 24]
 
 takeDrop :: forall a. Int -> [a] -> Tuple [a] [a]
-takeDrop _ [] = Tuple [] []
-takeDrop 0 xs = Tuple [] xs
-takeDrop n (x:xs) = Tuple (x:ys) zs
- where t = takeDrop (n-1) xs
-       ys = fst t
-       zs = snd t
+takeDrop n xs = Tuple (take n xs) (drop n xs)
 
 encrypt :: Word64 -> Word64 -> Word64
 encrypt = flip des_enc
