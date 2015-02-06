@@ -2,7 +2,6 @@ module Codec.Encryption.DES (encrypt, decrypt) where
 
 import Data.Array(length, zipWith, take, drop, map, concat)
 import Data.Foldable(sum)
-import Data.Tuple(Tuple(..), fst, snd)
 import Prelude.Unsafe(unsafeIndex)
 import Codec.Encryption.Word64
 
@@ -50,18 +49,21 @@ des_enc = do_des [1,2,4,6,8,10,12,14,15,17,19,21,23,25,27,28]
 des_dec :: Message -> Key -> Enc
 des_dec = do_des [28,27,25,23,21,19,17,15,14,12,10,8,6,4,2,1]
 
+t32 = take 32
+d32 = drop 32
+
 do_des :: [Rotation] -> Message -> Key -> Enc
-do_des rots m k = des_work rots (takeDrop 32 mb) kb
+do_des rots m k = des_work rots (t32 mb) (d32 mb) kb
  where kb = key_transformation $ bitify k
        mb = initial_permutation $ bitify m
 
-des_work :: [Rotation] -> Tuple Bits32 Bits32 -> Bits56 -> Enc
-des_work [] (Tuple ml mr) _ = unbitify $ final_perm $ (mr ++ ml)
-des_work (r:rs) mb kb = des_work rs mb' kb
- where mb' = do_round r mb kb
+des_work :: [Rotation] -> Bits32 -> Bits32 -> Bits56 -> Enc
+des_work [] ml mr _ = unbitify $ final_perm $ (mr ++ ml)
+des_work (r:rs) ml mr kb = des_work rs (t32 mb') (d32 mb') kb
+ where mb' = do_round r ml mr kb
 
-do_round :: Rotation -> Tuple Bits32 Bits32 -> Bits56 -> Tuple Bits32 Bits32
-do_round r (Tuple ml mr) kb = Tuple mr m'
+do_round :: Rotation -> Bits32 -> Bits32 -> Bits56 -> Bits64
+do_round r ml mr kb = mr ++ m'
  where kb' = get_key kb r
        comp_kb = compression_permutation kb'
        expa_mr = expansion_permutation mr
@@ -184,9 +186,6 @@ final_perm kb = map (unsafeIndex kb) i
             37, 5, 45, 13, 53, 21, 61, 29, 36, 4, 44, 12, 52, 20, 60, 28,
             35, 3, 43, 11, 51, 19, 59, 27, 34, 2, 42, 10, 50, 18, 58, 26,
             33, 1, 41,  9, 49, 17, 57, 25, 32, 0, 40 , 8, 48, 16, 56, 24]
-
-takeDrop :: forall a. Int -> [a] -> Tuple [a] [a]
-takeDrop n xs = Tuple (take n xs) (drop n xs)
 
 encrypt :: Word64 -> Word64 -> Word64
 encrypt = flip des_enc
