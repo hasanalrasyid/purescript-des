@@ -1,0 +1,21 @@
+{
+  "name": "purescript-des",
+  "version": "0.1.0",
+  "moduleType": [
+    "node"
+  ],
+  "ignore": [
+    "**/.*",
+    "node_modules",
+    "bower_components",
+    "output"
+  ],
+  "dependencies": {
+    "purescript-foldable-traversable": "*",
+    "purescript-math": "*",
+    "purescript-tuples": "*"
+  },
+  "devDependencies": {
+    "purescript-quickcheck": "*"
+  }
+}
