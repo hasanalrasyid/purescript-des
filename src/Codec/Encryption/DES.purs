@@ -2,7 +2,6 @@ module Codec.Encryption.DES (encrypt, decrypt) where
 
 import Data.Array(length, zipWith, take, drop, map, concat)
 import Data.Foldable(sum)
-import Data.Tuple(Tuple(..), fst, snd)
 import Prelude.Unsafe(unsafeIndex)
 import Codec.Encryption.Word64
 
@@ -51,17 +50,17 @@ des_dec :: Message -> Key -> Enc
 des_dec = do_des [28,27,25,23,21,19,17,15,14,12,10,8,6,4,2,1]
 
 do_des :: [Rotation] -> Message -> Key -> Enc
-do_des rots m k = des_work rots (takeDrop 32 mb) kb
+do_des rots m k = des_work rots mb kb
  where kb = key_transformation $ bitify k
        mb = initial_permutation $ bitify m
 
-des_work :: [Rotation] -> Tuple Bits32 Bits32 -> Bits56 -> Enc
-des_work [] (Tuple ml mr) _ = unbitify $ final_perm $ (mr ++ ml)
+des_work :: [Rotation] -> Bits64 -> Bits56 -> Enc
+des_work [] mlr _ = unbitify $ final_perm $ (drop 32 mlr ++ take 32 mlr)
 des_work (r:rs) mb kb = des_work rs mb' kb
  where mb' = do_round r mb kb
 
-do_round :: Rotation -> Tuple Bits32 Bits32 -> Bits56 -> Tuple Bits32 Bits32
-do_round r (Tuple ml mr) kb = Tuple mr m'
+do_round :: Rotation -> Bits64 -> Bits56 -> Bits64
+do_round r mlr kb = mr ++ m'
  where kb' = get_key kb r
        comp_kb = compression_permutation kb'
        expa_mr = expansion_permutation mr
@@ -85,6 +84,8 @@ do_round r (Tuple ml mr) kb = Tuple mr m'
                       ]
        res_p = p_box res_s
        m' = res_p `xor` ml
+       ml = take 32 mlr
+       mr = drop 32 mlr       
 
 get_key :: Bits56 -> Rotation -> Bits56
 get_key kb r = rotateL (take 28 kb) r ++ rotateL (drop 28 kb) r
@@ -185,14 +186,6 @@ final_perm kb = map (unsafeIndex kb) i
             37, 5, 45, 13, 53, 21, 61, 29, 36, 4, 44, 12, 52, 20, 60, 28,
             35, 3, 43, 11, 51, 19, 59, 27, 34, 2, 42, 10, 50, 18, 58, 26,
             33, 1, 41,  9, 49, 17, 57, 25, 32, 0, 40 , 8, 48, 16, 56, 24]
-
-takeDrop :: forall a. Int -> [a] -> Tuple [a] [a]
-takeDrop _ [] = Tuple [] []
-takeDrop 0 xs = Tuple [] xs
-takeDrop n (x:xs) = Tuple (x:ys) zs
- where t = takeDrop (n-1) xs
-       ys = fst t
-       zs = snd t
 
 encrypt :: Word64 -> Word64 -> Word64
 encrypt = flip des_enc
