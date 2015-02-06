@@ -43,19 +43,11 @@ key_transformation kb = map (unsafeIndex kb) i
             62, 54, 46, 38, 30, 22, 14,  6, 61, 53, 45, 37, 29, 21,
             13,  5, 60, 52, 44, 36, 28, 20, 12,  4, 27, 19, 11,  3]
 
-des_enc :: Message -> Key -> Enc
-des_enc = do_des [1,2,4,6,8,10,12,14,15,17,19,21,23,25,27,28]
-
-des_dec :: Message -> Key -> Enc
-des_dec = do_des [28,27,25,23,21,19,17,15,14,12,10,8,6,4,2,1]
-
 t32 = take 32
 d32 = drop 32
-t28 = take 28
-d28 = drop 28
 
-do_des :: [Rotation] -> Message -> Key -> Enc
-do_des rots m k = des_work rots (t32 mb) (d32 mb) kb
+do_des :: [Rotation] -> Key -> Message -> Enc
+do_des rots k m = des_work rots (t32 mb) (d32 mb) kb
  where kb = key_transformation $ bitify k
        mb = initial_permutation $ bitify m
 
@@ -89,6 +81,9 @@ do_round r ml mr kb = mr ++ m'
                       ]
        res_p = p_box res_s
        m' = res_p `xor` ml
+
+t28 = take 28
+d28 = drop 28
 
 get_key :: Bits56 -> Rotation -> Bits56
 get_key kb r = rotateL (t28 kb) r ++ rotateL (d28 kb) r
@@ -191,9 +186,7 @@ final_perm kb = map (unsafeIndex kb) i
             33, 1, 41,  9, 49, 17, 57, 25, 32, 0, 40 , 8, 48, 16, 56, 24]
 
 encrypt :: Word64 -> Word64 -> Word64
-encrypt = flip des_enc
+encrypt = do_des [1,2,4,6,8,10,12,14,15,17,19,21,23,25,27,28]
 
 decrypt :: Word64 -> Word64 -> Word64
-decrypt = flip des_dec
-
-
+decrypt = do_des [28,27,25,23,21,19,17,15,14,12,10,8,6,4,2,1]
