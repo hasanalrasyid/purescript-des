@@ -17,14 +17,14 @@ type Enc     = Word64
 type BitsX  = [Bool]
 type Bits4  = [Bool]
 type Bits6  = [Bool]
+type Bits28 = [Bool]
 type Bits32 = [Bool]
 type Bits48 = [Bool]
 type Bits56 = [Bool]
 type Bits64 = [Bool]
 
-rotateL :: BitsX -> Int -> BitsX
-rotateL bits rot = drop rot' bits ++ take rot' bits
-  where rot' = rot % length bits
+rotateL :: Bits28 -> Int -> Bits28
+rotateL bits rot = drop rot bits ++ take rot bits
 
 xor :: BitsX -> BitsX -> BitsX
 xor = zipWith (/=)
@@ -51,6 +51,8 @@ des_dec = do_des [28,27,25,23,21,19,17,15,14,12,10,8,6,4,2,1]
 
 t32 = take 32
 d32 = drop 32
+t28 = take 28
+d28 = drop 28
 
 do_des :: [Rotation] -> Message -> Key -> Enc
 do_des rots m k = des_work rots (t32 mb) (d32 mb) kb
@@ -89,7 +91,8 @@ do_round r ml mr kb = mr ++ m'
        m' = res_p `xor` ml
 
 get_key :: Bits56 -> Rotation -> Bits56
-get_key kb r = rotateL (take 28 kb) r ++ rotateL (drop 28 kb) r
+get_key kb r = rotateL (t28 kb) r ++ rotateL (d28 kb) r
+
 
 compression_permutation :: Bits56 -> Bits48
 compression_permutation kb = map (unsafeIndex kb) i
