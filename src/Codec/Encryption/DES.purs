@@ -104,12 +104,19 @@ expansion_permutation mb = map (unsafeIndex mb) i
             23, 24, 25, 26, 27, 28, 27, 28, 29, 30, 31,  0]
 
 s_box :: [[Word8]] -> Bits6 -> Bits4
-s_box s (a:b:c:d:e:f:_) = to_bool 4 $ (s `unsafeIndex` row) `unsafeIndex` col
- where row = sum $ zipWith numericise [a,f]     [1, 0]
-       col = sum $ zipWith numericise [b,c,d,e] [3, 2, 1, 0]
-       numericise = (\x y -> if x then shl 1 y else 0)
-       to_bool 0 _ = []
-       to_bool n i = ((i .&. 8) == 8):to_bool (n-1) (i + i)
+s_box s (a:b:c:d:e:f:_) = bits4 $ (s `unsafeIndex` row) `unsafeIndex` col
+ where row = num1 a + num0 f
+       col = num3 b + num2 c  + num1 d + num0 e
+       num0 = numericise 0
+       num1 = numericise 1
+       num2 = numericise 2
+       num3 = numericise 3       
+       numericise = (\y x -> if x then shl 1 y else 0)
+       bits4 i = [ ((i .&. 8) == 8)
+                 , ((i .&. 4) == 4)
+                 , ((i .&. 2) == 2)
+                 , ((i .&. 1) == 1)
+                 ]
 
 s_box_1 :: Bits6 -> Bits4
 s_box_1 = s_box i
