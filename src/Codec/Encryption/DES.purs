@@ -23,18 +23,12 @@ type Bits48 = [Bool]
 type Bits56 = [Bool]
 type Bits64 = [Bool]
 
-rotateL :: [Bool] -> Int -> [Bool]
+rotateL :: BitsX -> Int -> BitsX
 rotateL bits rot = drop rot' bits ++ take rot' bits
   where rot' = rot % length bits
 
-
 xor :: BitsX -> BitsX -> BitsX
-xor a b = (zipWith (\x y -> (not x && y) || (x && not y)) a b)
-
-rotate :: BitsX -> Int -> BitsX
-rotate bits rot = drop rot' bits ++ take rot' bits
-  where rot' = rot % (length bits)
-
+xor = zipWith (/=)
 
 initial_permutation :: Bits64 -> Bits64
 initial_permutation mb = map (unsafeIndex mb) i
@@ -71,30 +65,29 @@ do_round r (Tuple ml mr) kb = Tuple mr m'
  where kb' = get_key kb r
        comp_kb = compression_permutation kb'
        expa_mr = expansion_permutation mr
-       res = comp_kb `xor` expa_mr
-       res' = [t1, t2, t3, t4, t5, t6, t7, t8]
-         where t1 = trans 6 (Tuple [] res)
-               t2 = trans 6 t1
-               t3 = trans 6 t2
-               t4 = trans 6 t3
-               t5 = trans 6 t4
-               t6 = trans 6 t5
-               t7 = trans 6 t6
-               t8 = trans 6 t7
-       trans n (Tuple _ b) = Tuple (take n b) (drop n b)
-       res_s = concat $ zipWith (\f (Tuple x _) -> f x) [s_box_1, s_box_2,
-                                                   s_box_3, s_box_4,
-                                                   s_box_5, s_box_6,
-                                                   s_box_7, s_box_8] res'
+       t1 = comp_kb `xor` expa_mr
+       t2 = drop6 t1
+       t3 = drop6 t2
+       t4 = drop6 t3
+       t5 = drop6 t4
+       t6 = drop6 t5
+       t7 = drop6 t6
+       t8 = drop6 t7
+       drop6 = drop 6
+       res_s = concat [ s_box_1 t1
+                      , s_box_2 t2
+                      , s_box_3 t3
+                      , s_box_4 t4
+                      , s_box_5 t5
+                      , s_box_6 t6
+                      , s_box_7 t7
+                      , s_box_8 t8
+                      ]
        res_p = p_box res_s
        m' = res_p `xor` ml
 
 get_key :: Bits56 -> Rotation -> Bits56
-get_key kb r = kb'
- where t = takeDrop 28 kb
-       kl = fst t
-       kr = snd t
-       kb' = rotateL kl r ++ rotateL kr r
+get_key kb r = rotateL (take 28 kb) r ++ rotateL (drop 28 kb) r
 
 compression_permutation :: Bits56 -> Bits48
 compression_permutation kb = map (unsafeIndex kb) i
@@ -111,7 +104,7 @@ expansion_permutation mb = map (unsafeIndex mb) i
             23, 24, 25, 26, 27, 28, 27, 28, 29, 30, 31,  0]
 
 s_box :: [[Word8]] -> Bits6 -> Bits4
-s_box s [a,b,c,d,e,f] = to_bool 4 $ (s `unsafeIndex` row) `unsafeIndex` col
+s_box s (a:b:c:d:e:f:_) = to_bool 4 $ (s `unsafeIndex` row) `unsafeIndex` col
  where row = sum $ zipWith numericise [a,f]     [1, 0]
        col = sum $ zipWith numericise [b,c,d,e] [3, 2, 1, 0]
        numericise = (\x y -> if x then shl 1 y else 0)
