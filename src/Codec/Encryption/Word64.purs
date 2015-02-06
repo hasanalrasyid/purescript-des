@@ -3,13 +3,12 @@ module Codec.Encryption.Word64(Word64(..), bitify, unbitify, read, breverse, fro
 import Data.Foldable(foldl)
 import Data.Array(map, range, take, drop, reverse, length)
 import qualified Data.String as S
-import Math(pow)
 import Prelude.Unsafe(unsafeIndex)
 
 data Word64 = Word64 Number Number
 
 bitify32 :: Number -> [Boolean]
-bitify32 w = map (\b -> w .&. (pow 2 b) /= 0) $ range 31 0
+bitify32 w = map (\b -> w .&. (shl 1 b) /= 0) $ range 31 0
 
 bitify :: Word64 -> [Boolean]
 bitify (Word64 h l) = (bitify32 h) ++ (bitify32 l)

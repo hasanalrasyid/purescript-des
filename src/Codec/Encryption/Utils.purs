@@ -1,6 +1,5 @@
 module Codec.Encryption.Utils where
 
-import Math(pow)
 import Data.Array(take, drop, reverse, length, concat, concatMap)
 import Data.Foldable(foldl)
 import Codec.Encryption.Word64(Word64(..), read, fromBytes, pack, unpack)
@@ -21,7 +20,7 @@ unwords64 :: [Word64] -> [Number]
 unwords64 l = concat $ unpack <$> l 
 
 charsBytes :: [Char] -> [Number]
-charsBytes = concatMap (\x -> let c = toCharCode x in [(c / 256) .&. 255, c .&. 255])
+charsBytes = concatMap (\x -> let c = toCharCode x in [shr c 8, c .&. 255])
 
 bytesChars :: [Number] -> [Char]
 bytesChars s = (\ [h,l] -> fromCharCode $ h * 256 + l) <$> chunks 2 s

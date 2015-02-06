@@ -3,7 +3,6 @@ module Codec.Encryption.DES (encrypt, decrypt) where
 import Data.Array(length, zipWith, take, drop, map, concat)
 import Data.Foldable(sum)
 import Data.Tuple(Tuple(..), fst, snd)
-import Math(pow)
 import Prelude.Unsafe(unsafeIndex)
 import Codec.Encryption.Word64
 
@@ -115,7 +114,7 @@ s_box :: [[Word8]] -> Bits6 -> Bits4
 s_box s [a,b,c,d,e,f] = to_bool 4 $ (s `unsafeIndex` row) `unsafeIndex` col
  where row = sum $ zipWith numericise [a,f]     [1, 0]
        col = sum $ zipWith numericise [b,c,d,e] [3, 2, 1, 0]
-       numericise = (\x y -> if x then pow 2 y else 0)
+       numericise = (\x y -> if x then shl 1 y else 0)
        to_bool 0 _ = []
        to_bool n i = ((i .&. 8) == 8):to_bool (n-1) (i + i)
 
