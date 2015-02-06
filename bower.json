@@ -11,8 +11,7 @@
     "output"
   ],
   "dependencies": {
-    "purescript-foldable-traversable": "*",
-    "purescript-tuples": "*"
+    "purescript-foldable-traversable": "*"
   },
   "devDependencies": {
     "purescript-quickcheck": "*"

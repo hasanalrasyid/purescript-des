@@ -17,14 +17,14 @@ type Enc     = Word64
 type BitsX  = [Bool]
 type Bits4  = [Bool]
 type Bits6  = [Bool]
+type Bits28 = [Bool]
 type Bits32 = [Bool]
 type Bits48 = [Bool]
 type Bits56 = [Bool]
 type Bits64 = [Bool]
 
-rotateL :: BitsX -> Int -> BitsX
-rotateL bits rot = drop rot' bits ++ take rot' bits
-  where rot' = rot % length bits
+rotateL :: Bits28 -> Int -> Bits28
+rotateL bits rot = drop rot bits ++ take rot bits
 
 xor :: BitsX -> BitsX -> BitsX
 xor = zipWith (/=)
@@ -49,18 +49,23 @@ des_enc = do_des [1,2,4,6,8,10,12,14,15,17,19,21,23,25,27,28]
 des_dec :: Message -> Key -> Enc
 des_dec = do_des [28,27,25,23,21,19,17,15,14,12,10,8,6,4,2,1]
 
+t32 = take 32
+d32 = drop 32
+t28 = take 28
+d28 = drop 28
+
 do_des :: [Rotation] -> Message -> Key -> Enc
-do_des rots m k = des_work rots mb kb
+do_des rots m k = des_work rots (t32 mb) (d32 mb) kb
  where kb = key_transformation $ bitify k
        mb = initial_permutation $ bitify m
 
-des_work :: [Rotation] -> Bits64 -> Bits56 -> Enc
-des_work [] mlr _ = unbitify $ final_perm $ (drop 32 mlr ++ take 32 mlr)
-des_work (r:rs) mb kb = des_work rs mb' kb
- where mb' = do_round r mb kb
+des_work :: [Rotation] -> Bits32 -> Bits32 -> Bits56 -> Enc
+des_work [] ml mr _ = unbitify $ final_perm $ (mr ++ ml)
+des_work (r:rs) ml mr kb = des_work rs (t32 mb') (d32 mb') kb
+ where mb' = do_round r ml mr kb
 
-do_round :: Rotation -> Bits64 -> Bits56 -> Bits64
-do_round r mlr kb = mr ++ m'
+do_round :: Rotation -> Bits32 -> Bits32 -> Bits56 -> Bits64
+do_round r ml mr kb = mr ++ m'
  where kb' = get_key kb r
        comp_kb = compression_permutation kb'
        expa_mr = expansion_permutation mr
@@ -84,11 +89,10 @@ do_round r mlr kb = mr ++ m'
                       ]
        res_p = p_box res_s
        m' = res_p `xor` ml
-       ml = take 32 mlr
-       mr = drop 32 mlr       
 
 get_key :: Bits56 -> Rotation -> Bits56
-get_key kb r = rotateL (take 28 kb) r ++ rotateL (drop 28 kb) r
+get_key kb r = rotateL (t28 kb) r ++ rotateL (d28 kb) r
+
 
 compression_permutation :: Bits56 -> Bits48
 compression_permutation kb = map (unsafeIndex kb) i
@@ -108,11 +112,10 @@ s_box :: [[Word8]] -> Bits6 -> Bits4
 s_box s (a:b:c:d:e:f:_) = bits4 $ (s `unsafeIndex` row) `unsafeIndex` col
  where row = num1 a + num0 f
        col = num3 b + num2 c  + num1 d + num0 e
-       num0 = numericise 0
-       num1 = numericise 1
-       num2 = numericise 2
-       num3 = numericise 3       
-       numericise = (\y x -> if x then shl 1 y else 0)
+       num0 x = if x then 1 else 0 
+       num1 x = if x then 2 else 0
+       num2 x = if x then 4 else 0
+       num3 x = if x then 8 else 0
        bits4 i = [ ((i .&. 8) == 8)
                  , ((i .&. 4) == 4)
                  , ((i .&. 2) == 2)
