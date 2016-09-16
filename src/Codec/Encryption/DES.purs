@@ -1,12 +1,14 @@
 module Codec.Encryption.DES (encrypt, decrypt) where
 
-import Data.Array(length, zipWith, take, drop, map, concat)
-import Data.Foldable(sum)
-import Prelude.Unsafe(unsafeIndex)
-import Codec.Encryption.Word64
+import Codec.Encryption.Word64 (Word64, unbitify, bitify)
+import Data.Array (zipWith, take, drop, concat)
+import Data.Array.Partial (unsafeIndex)
+import Data.Int.Bits ((.&.))
+import Data.List ((:), List(Nil))
+import Partial.Unsafe (unsafePartial)
+import Prelude ((==), (+), map, ($), (/=), (<>))
 
 type Bool = Boolean
-type Int = Number
 type Word8 = Int
 type Rotation = Int
 type Key     = Word64
@@ -14,50 +16,53 @@ type Message = Word64
 type Enc     = Word64
 
 
-type BitsX  = [Bool]
-type Bits4  = [Bool]
-type Bits6  = [Bool]
-type Bits28 = [Bool]
-type Bits32 = [Bool]
-type Bits48 = [Bool]
-type Bits56 = [Bool]
-type Bits64 = [Bool]
+type BitsX  = Array Bool
+type Bits4  = Array Bool
+type Bits6  = Array Bool
+type Bits28 = Array Bool
+type Bits32 = Array Bool
+type Bits48 = Array Bool
+type Bits56 = Array Bool
+type Bits64 = Array Bool
 
 rotateL :: Bits28 -> Int -> Bits28
-rotateL bits rot = drop rot bits ++ take rot bits
+rotateL bits rot = drop rot bits <> take rot bits
 
 xor :: BitsX -> BitsX -> BitsX
 xor = zipWith (/=)
 
 initial_permutation :: Bits64 -> Bits64
-initial_permutation mb = map (unsafeIndex mb) i
+initial_permutation mb = unsafePartial $ map (unsafeIndex mb) i
  where i = [57, 49, 41, 33, 25, 17,  9, 1, 59, 51, 43, 35, 27, 19, 11, 3,
             61, 53, 45, 37, 29, 21, 13, 5, 63, 55, 47, 39, 31, 23, 15, 7,
             56, 48, 40, 32, 24, 16,  8, 0, 58, 50, 42, 34, 26, 18, 10, 2,
             60, 52, 44, 36, 28, 20, 12, 4, 62, 54, 46, 38, 30, 22, 14, 6]
 
 key_transformation :: Bits64 -> Bits56
-key_transformation kb = map (unsafeIndex kb) i
+key_transformation kb = unsafePartial $ map (unsafeIndex kb) i
  where i = [56, 48, 40, 32, 24, 16,  8,  0, 57, 49, 41, 33, 25, 17,
              9,  1, 58, 50, 42, 34, 26, 18, 10,  2, 59, 51, 43, 35,
             62, 54, 46, 38, 30, 22, 14,  6, 61, 53, 45, 37, 29, 21,
             13,  5, 60, 52, 44, 36, 28, 20, 12,  4, 27, 19, 11,  3]
 
+t32 :: forall a. Array a -> Array a
 t32 = take 32
+
+d32 :: forall a. Array a -> Array a
 d32 = drop 32
 
-do_des :: [Rotation] -> Key -> Message -> Enc
+do_des :: List Rotation -> Key -> Message -> Enc
 do_des rots k m = des_work rots (t32 mb) (d32 mb) kb
  where kb = key_transformation $ bitify k
        mb = initial_permutation $ bitify m
 
-des_work :: [Rotation] -> Bits32 -> Bits32 -> Bits56 -> Enc
-des_work [] ml mr _ = unbitify $ final_perm $ (mr ++ ml)
+des_work :: List Rotation -> Bits32 -> Bits32 -> Bits56 -> Enc
+des_work Nil ml mr _ = unbitify $ final_perm $ (mr <> ml)
 des_work (r:rs) ml mr kb = des_work rs (t32 mb') (d32 mb') kb
  where mb' = do_round r ml mr kb
 
 do_round :: Rotation -> Bits32 -> Bits32 -> Bits56 -> Bits64
-do_round r ml mr kb = mr ++ m'
+do_round r ml mr kb = mr <> m'
  where kb' = get_key kb r
        comp_kb = compression_permutation kb'
        expa_mr = expansion_permutation mr
@@ -82,41 +87,52 @@ do_round r ml mr kb = mr ++ m'
        res_p = p_box res_s
        m' = res_p `xor` ml
 
+t28 :: forall a. Array a -> Array a
 t28 = take 28
+
+d28 :: forall a. Array a -> Array a
 d28 = drop 28
 
 get_key :: Bits56 -> Rotation -> Bits56
-get_key kb r = rotateL (t28 kb) r ++ rotateL (d28 kb) r
-
+get_key kb r = rotateL (t28 kb) r <> rotateL (d28 kb) r
 
 compression_permutation :: Bits56 -> Bits48
-compression_permutation kb = map (unsafeIndex kb) i
+compression_permutation kb = unsafePartial $ map (unsafeIndex kb) i
  where i = [13, 16, 10, 23,  0,  4,  2, 27, 14,  5, 20,  9,
             22, 18, 11,  3, 25,  7, 15,  6, 26, 19, 12,  1,
             40, 51, 30, 36, 46, 54, 29, 39, 50, 44, 32, 47,
             43, 48, 38, 55, 33, 52, 45, 41, 49, 35, 28, 31]
 
 expansion_permutation :: Bits32 -> Bits48
-expansion_permutation mb = map (unsafeIndex mb) i
+expansion_permutation mb = unsafePartial $ map (unsafeIndex mb) i
  where i = [31,  0,  1,  2,  3,  4,  3,  4,  5,  6,  7,  8,
              7,  8,  9, 10, 11, 12, 11, 12, 13, 14, 15, 16,
             15, 16, 17, 18, 19, 20, 19, 20, 21, 22, 23, 24,
             23, 24, 25, 26, 27, 28, 27, 28, 29, 30, 31,  0]
 
-s_box :: [[Word8]] -> Bits6 -> Bits4
-s_box s (a:b:c:d:e:f:_) = bits4 $ (s `unsafeIndex` row) `unsafeIndex` col
- where row = num1 a + num0 f
-       col = num3 b + num2 c  + num1 d + num0 e
-       num0 x = if x then 1 else 0 
-       num1 x = if x then 2 else 0
-       num2 x = if x then 4 else 0
-       num3 x = if x then 8 else 0
-       bits4 i = [ ((i .&. 8) == 8)
-                 , ((i .&. 4) == 4)
-                 , ((i .&. 2) == 2)
-                 , ((i .&. 1) == 1)
-                 ]
+s_box' :: Partial => Array (Array Word8) -> Bits6 -> Bits4
+s_box' s arr = bits4 $ (s `unsafeIndex` row) `unsafeIndex` col
+  where a = arr `unsafeIndex` 0
+        b = arr `unsafeIndex` 1
+        c = arr `unsafeIndex` 2
+        d = arr `unsafeIndex` 3
+        e = arr `unsafeIndex` 4
+        f = arr `unsafeIndex` 5
+        row = num1 a + num0 f
+        col = num3 b + num2 c  + num1 d + num0 e
+        num0 x = if x then 1 else 0 
+        num1 x = if x then 2 else 0
+        num2 x = if x then 4 else 0
+        num3 x = if x then 8 else 0
+        bits4 i = [ ((i .&. 8) == 8)
+                  , ((i .&. 4) == 4)
+                  , ((i .&. 2) == 2)
+                  , ((i .&. 1) == 1)
+                  ]
 
+s_box :: Array (Array Word8) -> Bits6 -> Bits4
+s_box = unsafePartial s_box'                  
+                 
 s_box_1 :: Bits6 -> Bits4
 s_box_1 = s_box i
  where i = [[14,  4, 13,  1,  2, 15, 11,  8,  3, 10,  6, 12,  5,  9,  0,  7],
@@ -174,19 +190,19 @@ s_box_8 = s_box i
             [2,   1, 14,  7,  4, 10,  8, 13, 15, 12,  9,  0,  3,  5,  6, 11]]
 
 p_box :: Bits32 -> Bits32
-p_box kb = map (unsafeIndex kb) i
+p_box kb = unsafePartial $ map (unsafeIndex kb) i
  where i = [15, 6, 19, 20, 28, 11, 27, 16,  0, 14, 22, 25,  4, 17, 30,  9,
              1, 7, 23, 13, 31, 26,  2,  8, 18, 12, 29,  5, 21, 10,  3, 24]
 
 final_perm :: Bits64 -> Bits64
-final_perm kb = map (unsafeIndex kb) i
+final_perm kb = unsafePartial $ map (unsafeIndex kb) i
  where i = [39, 7, 47, 15, 55, 23, 63, 31, 38, 6, 46, 14, 54, 22, 62, 30,
             37, 5, 45, 13, 53, 21, 61, 29, 36, 4, 44, 12, 52, 20, 60, 28,
             35, 3, 43, 11, 51, 19, 59, 27, 34, 2, 42, 10, 50, 18, 58, 26,
             33, 1, 41,  9, 49, 17, 57, 25, 32, 0, 40 , 8, 48, 16, 56, 24]
 
-encrypt :: Word64 -> Word64 -> Word64
-encrypt = do_des [1,2,4,6,8,10,12,14,15,17,19,21,23,25,27,28]
+encrypt :: Key -> Word64 -> Word64
+encrypt = do_des (1:2:4:6:8:10:12:14:15:17:19:21:23:25:27:28:Nil)
 
-decrypt :: Word64 -> Word64 -> Word64
-decrypt = do_des [28,27,25,23,21,19,17,15,14,12,10,8,6,4,2,1]
+decrypt :: Key -> Word64 -> Word64
+decrypt = do_des (28:27:25:23:21:19:17:15:14:12:10:8:6:4:2:1:Nil)
