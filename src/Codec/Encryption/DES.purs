@@ -8,22 +8,20 @@ import Data.List ((:), List(Nil))
 import Partial.Unsafe (unsafePartial)
 import Prelude ((==), (+), map, ($), (/=), (<>))
 
-type Bool = Boolean
-type Word8 = Int
 type Rotation = Int
 type Key     = Word64
 type Message = Word64
 type Enc     = Word64
 
 
-type BitsX  = Array Bool
-type Bits4  = Array Bool
-type Bits6  = Array Bool
-type Bits28 = Array Bool
-type Bits32 = Array Bool
-type Bits48 = Array Bool
-type Bits56 = Array Bool
-type Bits64 = Array Bool
+type BitsX  = Array Boolean
+type Bits4  = Array Boolean
+type Bits6  = Array Boolean
+type Bits28 = Array Boolean
+type Bits32 = Array Boolean
+type Bits48 = Array Boolean
+type Bits56 = Array Boolean
+type Bits64 = Array Boolean
 
 rotateL :: Bits28 -> Int -> Bits28
 rotateL bits rot = drop rot bits <> take rot bits
@@ -110,7 +108,7 @@ expansion_permutation mb = unsafePartial $ map (unsafeIndex mb) i
             15, 16, 17, 18, 19, 20, 19, 20, 21, 22, 23, 24,
             23, 24, 25, 26, 27, 28, 27, 28, 29, 30, 31,  0]
 
-s_box' :: Partial => Array (Array Word8) -> Bits6 -> Bits4
+s_box' :: Partial => Array (Array Int) -> Bits6 -> Bits4
 s_box' s arr = bits4 $ (s `unsafeIndex` row) `unsafeIndex` col
   where a = arr `unsafeIndex` 0
         b = arr `unsafeIndex` 1
@@ -130,7 +128,7 @@ s_box' s arr = bits4 $ (s `unsafeIndex` row) `unsafeIndex` col
                   , ((i .&. 1) == 1)
                   ]
 
-s_box :: Array (Array Word8) -> Bits6 -> Bits4
+s_box :: Array (Array Int) -> Bits6 -> Bits4
 s_box = unsafePartial s_box'                  
                  
 s_box_1 :: Bits6 -> Bits4
