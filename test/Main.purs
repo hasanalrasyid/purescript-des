@@ -8,10 +8,19 @@ import Control.Monad.Eff (Eff)
 import Control.Monad.Eff.Console (CONSOLE)
 import Control.Monad.Eff.Exception (EXCEPTION)
 import Control.Monad.Eff.Random (RANDOM)
+import Data.Array (filter)
 import Data.Int.Bits ((.&.))
-import Data.String (toCharArray)
-import Prelude (map, show, (<>), Unit, class Eq, unit, pure, bind, eq, (==), (-), ($), negate)
+import Data.String (fromCharArray, toCharArray)
+import Prelude ((/=), pure, map, show, (<>), Unit, class Eq, bind, eq, (==), (-), ($), negate)
 import Test.QuickCheck.Arbitrary (arbitrary, class Arbitrary)
+
+newtype ValidString = ValidString String
+
+instance arbValidString :: Arbitrary ValidString where
+  arbitrary = do
+    s <- arbitrary
+    pure $ ValidString $ fromCharArray $ filter (_ /= '\0') $ toCharArray s
+
 
 newtype TWord64 = TWord64 Word64
 
@@ -37,19 +46,12 @@ main = do
   let unword64 (TWord64 w) = w
       unwordArray64 = map unword64
   
-  -- let k2 = U.textKey "12345678"
-  -- let orig = "hello world"
-  -- let m = U.words64 $ U.stringBytes orig
-  -- assert $ U.encrypt k2 m == [ Word64 0x28dba02e 0xb5f6dd47
-  --                            , Word64 0x6042daeb 0xfa59687a
-  --                            ]
   quickCheck $ \a -> (a :: Array TWord64) == (map TWord64 $ U.words64 $ U.unwords64 $ unwordArray64 a)
   quickCheck $ \t -> t == (U.bytesChars $ U.charsBytes t) <?> show t <> show (U.charsBytes t)
   quickCheck $ \(TWord64 k) m -> (unwordArray64 m) == (U.decrypt k $ U.encrypt k (unwordArray64 m))
   quickCheck $ \x -> let ix = (x .&. 255) in ix == (breverse $ breverse ix)
   quickCheck $ \(TWord64 x) -> x == (pack $ unpack x)
   quickCheck $ \(TWord64 k) (TWord64 m) -> m == (decrypt k $ encrypt k m)
-  quickCheck $ \(TWord64 k) m -> let m' = (U.decryptText k $ U.encryptText k m) in m == m' <?> show m <> " -> " <> show m' <> " A " <> show (toCharArray m)
-  pure unit
+  quickCheck $ \(TWord64 k) (ValidString m) -> let m' = (U.decryptText k $ U.encryptText k m) in m == m' <?> show m <> " -> " <> show m' <> " A " <> show (toCharArray m)
 
 
