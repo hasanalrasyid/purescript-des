@@ -1,8 +1,7 @@
 module Codec.Encryption.DES (encrypt, decrypt) where
 
 import Codec.Encryption.Word64 (Word64, unbitify, bitify)
-import Data.Array (zipWith, take, drop, concat)
-import Data.Array.Partial (unsafeIndex)
+import Data.Array (zipWith, take, drop, concat, unsafeIndex)
 import Data.Int.Bits ((.&.))
 import Data.List ((:), List(Nil))
 import Partial.Unsafe (unsafePartial)

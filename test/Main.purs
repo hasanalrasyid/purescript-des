@@ -1,6 +1,8 @@
 module Test.Main where
 
-import Test.QuickCheck
+import Prelude
+import Test.Assert(ASSERT, assert)
+import Test.QuickCheck (quickCheck, quickCheck', (<?>))
 import Codec.Encryption.Utils as U
 import Codec.Encryption.DES (encrypt, decrypt)
 import Codec.Encryption.Word64 (unpack, pack, breverse, Word64(..))
@@ -11,7 +13,6 @@ import Control.Monad.Eff.Random (RANDOM)
 import Data.Array (filter)
 import Data.Int.Bits ((.&.))
 import Data.String (fromCharArray, toCharArray)
-import Prelude ((/=), pure, map, show, (<>), Unit, class Eq, bind, eq, (==), (-), ($), negate)
 import Test.QuickCheck.Arbitrary (arbitrary, class Arbitrary)
 
 newtype ValidString = ValidString String
@@ -34,13 +35,12 @@ instance arbTWord64 :: Arbitrary TWord64 where
     l <- arbitrary
     pure $ TWord64 (Word64 h l)
 
-main :: forall e. Eff ( console :: CONSOLE, random :: RANDOM, err :: EXCEPTION | e) Unit
+main :: forall e. Eff ( assert :: ASSERT, console :: CONSOLE, random :: RANDOM, exception :: EXCEPTION | e) Unit
 main = do
-  let assert = quickCheck' 1
-  let k = U.hexKey "5B5A57676A56676E"
-  assert $ k == Word64 0x5B5A5767 0x6A56676E
-  let u = Word64 (-1756692545) (-2046677729)
-      e = encrypt k (Word64 0x675A6967 0x5E5A6B5A)
+  let key = U.hexKey "5B5A57676A56676E"
+  assert $ key == Word64 0x5B5A5767 0x6A56676E
+  let u = Word64 (-1756692545) (-2046677729) 
+      e = encrypt key (Word64 0x675A6967 0x5E5A6B5A)
   quickCheck' 1 $ u == e <?> "unencrypted " <> show u <> " encrypted " <> show e
 
   let unword64 (TWord64 w) = w

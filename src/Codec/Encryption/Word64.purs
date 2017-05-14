@@ -1,8 +1,7 @@
 module Codec.Encryption.Word64(Word64(..), bitify, unbitify, read, breverse, fromBytes, toBytes, pack, unpack) where
 
 import Data.String as S
-import Data.Array (range, take, drop, length)
-import Data.Array.Partial (unsafeIndex)
+import Data.Array (drop, length, range, take, unsafeIndex)
 import Data.Foldable (foldl)
 import Data.Int.Bits (zshr, shl, (.&.))
 import Partial.Unsafe (unsafePartial)
@@ -39,7 +38,7 @@ pack :: Array Int -> Word64
 pack bs = Word64 (p (take 4 bs)) (p (drop 4 bs))
   where p l = foldl step 0 $ pad l
           where step sofar i = sofar * 256 + i
-                pad l = l <> take (4 - length l) [0,0,0,0]
+                pad x = x <> take (4 - length x) [0,0,0,0]
 
 unpack :: Word64 -> Array Int
 unpack (Word64 h l) = u h <> u l
