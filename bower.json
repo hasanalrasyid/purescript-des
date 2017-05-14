@@ -1,5 +1,6 @@
 {
   "name": "purescript-des",
+  "license": "MIT",
   "ignore": [
     "**/.*",
     "node_modules",
