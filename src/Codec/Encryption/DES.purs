@@ -198,8 +198,10 @@ final_perm kb = unsafePartial $ map (unsafeIndex kb) i
             35, 3, 43, 11, 51, 19, 59, 27, 34, 2, 42, 10, 50, 18, 58, 26,
             33, 1, 41,  9, 49, 17, 57, 25, 32, 0, 40 , 8, 48, 16, 56, 24]
 
+-- | Encrypt a single `Word64` with the given key.
 encrypt :: Key -> Word64 -> Word64
 encrypt = do_des (1:2:4:6:8:10:12:14:15:17:19:21:23:25:27:28:Nil)
 
+-- | Decrypt a single `Word64` with the given key.
 decrypt :: Key -> Word64 -> Word64
 decrypt = do_des (28:27:25:23:21:19:17:15:14:12:10:8:6:4:2:1:Nil)
