@@ -38,7 +38,7 @@ decryptText :: Word64 -> Array Word64 -> String
 decryptText k = strip0s <<< fromCharArray <<< bytesChars <<< unwords64 <<< decrypt k
 
 strip0s :: String -> String
-strip0s = takeWhile ((/=) (fromCharCode 0))
+strip0s = takeWhile (\x -> Just x /= (fromCharCode 0))
 
 -- | Turn a string into a `Word64` to create a key. Missing chars will be padded and excess chars discarded.
 textKey :: String -> Word64
