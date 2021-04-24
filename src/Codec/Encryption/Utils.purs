@@ -6,7 +6,7 @@ import Codec.Encryption.Word64 (Word64, read, pack, unpack)
 import Data.Array (take, drop, concat, concatMap)
 import Data.Char (fromCharCode, toCharCode)
 import Data.Int.Bits ((.&.), shr)
-import Data.String (toCharArray, fromCharArray, takeWhile)
+import Data.String.CodeUnits (toCharArray, fromCharArray, takeWhile)
 import Partial.Unsafe (unsafePartial)
 
 encrypt :: Word64 -> Array Word64 -> Array Word64
@@ -19,7 +19,7 @@ words64 :: Array Int -> Array Word64
 words64 l = pack <$> chunks 8 l
 
 unwords64 :: Array Word64 -> Array Int
-unwords64 l = concat $ unpack <$> l 
+unwords64 l = concat $ unpack <$> l
 
 -- | Decompose an array of chars into an array of byte values.
 charsBytes :: Array Char -> Array Int
